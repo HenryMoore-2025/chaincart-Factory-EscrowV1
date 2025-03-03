@@ -29,7 +29,7 @@ async function main() {
     wallet,
     {
       gasPrice: GasPrice.fromString("0.075untrn"),
-      gasLimit: Gas
+      
 
     }
   );
