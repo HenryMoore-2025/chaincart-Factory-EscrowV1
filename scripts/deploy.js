@@ -4,7 +4,7 @@
 // // import { readFileSync } from "fs";
 const { SigningCosmWasmClient } = require("@cosmjs/cosmwasm-stargate");
 const { DirectSecp256k1HdWallet } = require("@cosmjs/proto-signing");
-const { GasPrice  } = require("@cosmjs/stargate");
+const { GasPrice } = require("@cosmjs/stargate");
 const {  readFileSync } = require("fs");
 
 // import dotenv from "dotenv"
@@ -22,25 +22,27 @@ async function main() {
   });
 
   const [firstAccount] = await wallet.getAccounts();
+  console.log("Wallet address:", firstAccount.address);
 
   const client = await SigningCosmWasmClient.connectWithSigner(
     rpcEndpoint,
     wallet,
     {
-      gasPrice: GasPrice.fromString("0.15untrn"),
+      gasPrice: GasPrice.fromString("0.075untrn"),
+      gasLimit: Gas
 
     }
   );
 
-  const wasmCode = readFileSync(wasmFilePath);
-  const uploadReceipt = await client.upload(firstAccount.address, wasmCode, "auto");
+  // const wasmCode = readFileSync(wasmFilePath);
+  const uploadReceipt = await client.upload(firstAccount.address, wasmFilePath ,"auto");
   console.log("Upload successful, code ID:", uploadReceipt.codeId);
 
   const initMsg = {};
   const instantiateReceipt = await client.instantiate(firstAccount.address, uploadReceipt.codeId, initMsg, "Fixed Swap", "auto");
+  console.log("Fist account", firstAccount.address);
   console.log("Contract instantiated at:", instantiateReceipt.contractAddress);
 }
-
 main().catch(console.error);
 
 

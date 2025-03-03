@@ -19,10 +19,12 @@ pub struct InstantiateMsg {}
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    InitiateEscrow { buyer: Addr, seller: Addr, amount: Uint128 },
-    ConfirmEscrow {},
+    InitiateEscrow { seller: Addr, amount: Uint128 }, // Buyer initiates escrow
+    ReleaseFunds {}, // Buyer releases funds to seller
     CancelEscrow {},
 }
+
+
 
 pub fn instantiate(
     _deps: DepsMut,
@@ -35,51 +37,113 @@ pub fn instantiate(
 
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> StdResult<Response> {
     match msg {
-        ExecuteMsg::InitiateEscrow { buyer, seller, amount } => {
-            initiate_escrow(deps, info, buyer, seller, amount)
+        ExecuteMsg::InitiateEscrow { seller, amount } => {
+            initiate_escrow(deps, info, seller, amount)
         }
-        ExecuteMsg::ConfirmEscrow {} => confirm_escrow(deps, info),
-        ExecuteMsg::CancelEscrow {} => cancel_escrow(deps, info),
+        ExecuteMsg::ReleaseFunds {} => release_funds(deps, info, env),
+        ExecuteMsg::CancelEscrow {} => cancel_escrow(deps, info, env),
     }
 }
 
+
+
+
 fn initiate_escrow(
     deps: DepsMut,
-    _info: MessageInfo,
-    buyer: Addr,
+    info: MessageInfo,
     seller: Addr,
     amount: Uint128,
 ) -> StdResult<Response> {
+    // Ensure the sender is the buyer (no need to specify buyer in the message)
+    let buyer = info.sender;
+
+    // Verify that the correct amount of funds has been sent
+    if info.funds.len() != 1 || info.funds[0].amount != amount || info.funds[0].denom != "ujuno" {
+        return Err(cosmwasm_std::StdError::generic_err("Incorrect funds sent"));
+    }
+
+    // Create a new escrow
     let escrow = Escrow {
         buyer,
         seller,
         amount,
         is_completed: false,
     };
+
+    // Save the escrow to storage
     ESCROW.save(deps.storage, &escrow)?;
+
     Ok(Response::new().add_attribute("action", "initiate_escrow"))
 }
 
-fn confirm_escrow(deps: DepsMut, info: MessageInfo) -> StdResult<Response> {
-    let mut escrow = ESCROW.load(deps.storage)?;
-    if info.sender != escrow.seller {
-        return Err(cosmwasm_std::StdError::generic_err("Unauthorized"));
+fn release_funds(deps: DepsMut, info: MessageInfo, env: Env) -> StdResult<Response> {
+    // Load the escrow from storage
+    let escrow = ESCROW.load(deps.storage)?;
+
+    // Ensure the sender is the buyer
+    if info.sender != escrow.buyer {
+        return Err(cosmwasm_std::StdError::generic_err("Only the buyer can release funds"));
     }
-    escrow.is_completed = true;
-    ESCROW.save(deps.storage, &escrow)?;
-    Ok(Response::new().add_attribute("action", "confirm_escrow"))
+
+    // Ensure the escrow is not already completed
+    if escrow.is_completed {
+        return Err(cosmwasm_std::StdError::generic_err("Escrow is already completed"));
+    }
+
+    // Transfer funds to the seller
+    let transfer_msg = cosmwasm_std::BankMsg::Send {
+        to_address: escrow.seller.to_string(),
+        amount: vec![cosmwasm_std::Coin {
+            denom: "ujuno".to_string(),
+            amount: escrow.amount,
+        }],
+    };
+
+    // Mark the escrow as completed
+    ESCROW.save(deps.storage, &Escrow {
+        is_completed: true,
+        ..escrow
+    })?;
+
+    Ok(Response::new()
+        .add_message(transfer_msg)
+        .add_attribute("action", "release_funds"))
 }
 
-fn cancel_escrow(deps: DepsMut, info: MessageInfo) -> StdResult<Response> {
+
+
+fn cancel_escrow(deps: DepsMut, info: MessageInfo, env: Env) -> StdResult<Response> {
+    // Load the escrow from storage
     let escrow = ESCROW.load(deps.storage)?;
+
+    // Ensure the sender is the buyer
     if info.sender != escrow.buyer {
-        return Err(cosmwasm_std::StdError::generic_err("Unauthorized"));
+        return Err(cosmwasm_std::StdError::generic_err("Only the buyer can cancel the escrow"));
     }
+
+    // Ensure the escrow is not already completed
+    if escrow.is_completed {
+        return Err(cosmwasm_std::StdError::generic_err("Escrow is already completed"));
+    }
+
+    // Refund funds to the buyer
+    let transfer_msg = cosmwasm_std::BankMsg::Send {
+        to_address: escrow.buyer.to_string(),
+        amount: vec![cosmwasm_std::Coin {
+            denom: "ujuno".to_string(),
+            amount: escrow.amount,
+        }],
+    };
+
+    // Remove the escrow from storage
     ESCROW.remove(deps.storage);
-    Ok(Response::new().add_attribute("action", "cancel_escrow"))
+
+    Ok(Response::new()
+        .add_message(transfer_msg)
+        .add_attribute("action", "cancel_escrow"))
 }
