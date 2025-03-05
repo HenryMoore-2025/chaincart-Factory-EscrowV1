@@ -43,7 +43,7 @@ fn initiate_escrow(
     let buyer = info.sender;
 
     // Verify that the correct amount of funds has been sent
-    if info.funds.len() != 1 || info.funds[0].amount != amount || info.funds[0].denom != "ujuno" {
+    if info.funds.len() != 1 || info.funds[0].amount != amount || info.funds[0].denom != "untrn" {
         return Err(cosmwasm_std::StdError::generic_err("Incorrect funds sent"));
     }
 
@@ -83,7 +83,7 @@ fn release_funds(deps: DepsMut, info: MessageInfo, _env: Env) -> StdResult<Respo
     let transfer_msg = cosmwasm_std::BankMsg::Send {
         to_address: escrow.seller.to_string(),
         amount: vec![cosmwasm_std::Coin {
-            denom: "ujuno".to_string(),
+            denom: "untrn".to_string(),
             amount: escrow.amount,
         }],
     };
@@ -124,7 +124,7 @@ fn cancel_escrow(deps: DepsMut, info: MessageInfo, _env: Env) -> StdResult<Respo
     let transfer_msg = cosmwasm_std::BankMsg::Send {
         to_address: escrow.buyer.to_string(),
         amount: vec![cosmwasm_std::Coin {
-            denom: "ujuno".to_string(),
+            denom: "untrn".to_string(),
             amount: escrow.amount,
         }],
     };
