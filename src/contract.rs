@@ -1,46 +1,29 @@
-use cosmwasm_std::{Addr, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
-use cw_storage_plus::Item;
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use cosmwasm_std::{entry_point, Addr, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
+use cw2::set_contract_version;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct Escrow {
-    pub buyer: Addr,
-    pub seller: Addr,
-    pub amount: Uint128,
-    pub is_completed: bool,
-}
+use crate::{
+    msg::{ExecuteMsg, InstantiateMsg},
+    state::{Escrow, ESCROW},
+};
 
-pub const ESCROW: Item<Escrow> = Item::new("escrow");
+// version info for migration info
+const CONTRACT_NAME: &str = "crates.io:escrow-contract";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct InstantiateMsg {}
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecuteMsg {
-    InitiateEscrow { seller: Addr, amount: Uint128 }, // Buyer initiates escrow
-    ReleaseFunds {}, // Buyer releases funds to seller
-    CancelEscrow {},
-}
-
-
-
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
     _msg: InstantiateMsg,
 ) -> StdResult<Response> {
-    Ok(Response::default())
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    Ok(Response::new().add_attribute("method", "instantiate"))
 }
 
-pub fn execute(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
-) -> StdResult<Response> {
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
     match msg {
         ExecuteMsg::InitiateEscrow { seller, amount } => {
             initiate_escrow(deps, info, seller, amount)
@@ -49,9 +32,6 @@ pub fn execute(
         ExecuteMsg::CancelEscrow {} => cancel_escrow(deps, info, env),
     }
 }
-
-
-
 
 fn initiate_escrow(
     deps: DepsMut,
@@ -81,18 +61,22 @@ fn initiate_escrow(
     Ok(Response::new().add_attribute("action", "initiate_escrow"))
 }
 
-fn release_funds(deps: DepsMut, info: MessageInfo, env: Env) -> StdResult<Response> {
+fn release_funds(deps: DepsMut, info: MessageInfo, _env: Env) -> StdResult<Response> {
     // Load the escrow from storage
     let escrow = ESCROW.load(deps.storage)?;
 
     // Ensure the sender is the buyer
     if info.sender != escrow.buyer {
-        return Err(cosmwasm_std::StdError::generic_err("Only the buyer can release funds"));
+        return Err(cosmwasm_std::StdError::generic_err(
+            "Only the buyer can release funds",
+        ));
     }
 
     // Ensure the escrow is not already completed
     if escrow.is_completed {
-        return Err(cosmwasm_std::StdError::generic_err("Escrow is already completed"));
+        return Err(cosmwasm_std::StdError::generic_err(
+            "Escrow is already completed",
+        ));
     }
 
     // Transfer funds to the seller
@@ -105,30 +89,35 @@ fn release_funds(deps: DepsMut, info: MessageInfo, env: Env) -> StdResult<Respon
     };
 
     // Mark the escrow as completed
-    ESCROW.save(deps.storage, &Escrow {
-        is_completed: true,
-        ..escrow
-    })?;
+    ESCROW.save(
+        deps.storage,
+        &Escrow {
+            is_completed: true,
+            ..escrow
+        },
+    )?;
 
     Ok(Response::new()
         .add_message(transfer_msg)
         .add_attribute("action", "release_funds"))
 }
 
-
-
-fn cancel_escrow(deps: DepsMut, info: MessageInfo, env: Env) -> StdResult<Response> {
+fn cancel_escrow(deps: DepsMut, info: MessageInfo, _env: Env) -> StdResult<Response> {
     // Load the escrow from storage
     let escrow = ESCROW.load(deps.storage)?;
 
     // Ensure the sender is the buyer
     if info.sender != escrow.buyer {
-        return Err(cosmwasm_std::StdError::generic_err("Only the buyer can cancel the escrow"));
+        return Err(cosmwasm_std::StdError::generic_err(
+            "Only the buyer can cancel the escrow",
+        ));
     }
 
     // Ensure the escrow is not already completed
     if escrow.is_completed {
-        return Err(cosmwasm_std::StdError::generic_err("Escrow is already completed"));
+        return Err(cosmwasm_std::StdError::generic_err(
+            "Escrow is already completed",
+        ));
     }
 
     // Refund funds to the buyer
