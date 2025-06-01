@@ -12,13 +12,13 @@ require("dotenv").config();
 
 // dotenv.config()
 
-const rpcEndpoint = "https://rpc-palvus.pion-1.ntrn.tech";
+const rpcEndpoint = "https://rpc.xion-testnet-2.burnt.com:443";
 const mnemonic = process.env.MNEMONIC;
 const wasmFilePath = "../artifacts/escrow_contract.wasm";
 
 async function main() {
   const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
-    prefix: "neutron",
+    prefix: "xion",
   });
 
   const [firstAccount] = await wallet.getAccounts();
@@ -28,7 +28,7 @@ async function main() {
     rpcEndpoint,
     wallet,
     {
-      gasPrice: GasPrice.fromString("0.025untrn")
+      gasPrice: GasPrice.fromString("0.025uxion")
     }
   );
 

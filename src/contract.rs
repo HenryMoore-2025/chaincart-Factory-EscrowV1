@@ -9,6 +9,7 @@ use crate::{
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:escrow-contract";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+const USDC_DENOM: &str = "ibc/6490A7EAB61059BFC1CDDEB05917DD70BDF3A611654162A1A47DB930D40D8AF4";
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -43,7 +44,7 @@ fn initiate_escrow(
     let buyer = info.sender;
 
     // Verify that the correct amount of funds has been sent
-    if info.funds.len() != 1 || info.funds[0].amount != amount || info.funds[0].denom != "untrn" {
+    if info.funds.len() != 1 || info.funds[0].amount != amount || info.funds[0].denom != USDC_DENOM {
         return Err(cosmwasm_std::StdError::generic_err("Incorrect funds sent"));
     }
 
@@ -83,7 +84,7 @@ fn release_funds(deps: DepsMut, info: MessageInfo, _env: Env) -> StdResult<Respo
     let transfer_msg = cosmwasm_std::BankMsg::Send {
         to_address: escrow.seller.to_string(),
         amount: vec![cosmwasm_std::Coin {
-            denom: "untrn".to_string(),
+            denom: USDC_DENOM.to_string(),
             amount: escrow.amount,
         }],
     };
@@ -124,7 +125,7 @@ fn cancel_escrow(deps: DepsMut, info: MessageInfo, _env: Env) -> StdResult<Respo
     let transfer_msg = cosmwasm_std::BankMsg::Send {
         to_address: escrow.buyer.to_string(),
         amount: vec![cosmwasm_std::Coin {
-            denom: "untrn".to_string(),
+            denom: USDC_DENOM.to_string(),
             amount: escrow.amount,
         }],
     };

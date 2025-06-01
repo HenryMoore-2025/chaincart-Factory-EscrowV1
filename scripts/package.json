@@ -5,6 +5,7 @@
   "main": "deploy.js",
   "scripts": {
     "start": "nodemon deploy.js",
+    "interact": "nodemon interact.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
 
