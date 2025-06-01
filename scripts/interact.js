@@ -6,7 +6,8 @@ require("dotenv").config();
 // Configuration
 const RPC_ENDPOINT = "https://rpc.xion-testnet-2.burnt.com:443";
 const MNEMONIC = process.env.MNEMONIC;
-const ESCROW_CONTRACT_ADDRESS = "xion1t6pp2v9fz5lsdl5ru9ynwcs322qrqe7hjpj66cqsmfjwfkukel8sesxm8y"
+// const ESCROW_CONTRACT_ADDRESS = "xion1t6pp2v9fz5lsdl5ru9ynwcs322qrqe7hjpj66cqsmfjwfkukel8sesxm8y" // supported Xion
+const ESCROW_CONTRACT_ADDRESS = "xion1gdytd97uvvurm9kexcefm32jfnssynlnx54rz7zuw46mzsan482qjqzuk8" // supported USDC
 const USDC_CONTRACT_ADDRESS = process.env.USDC_CONTRACT_ADDRESS;
 const CHAIN_ID = process.env.CHAIN_ID || "xion-testnet-2";
 const GAS_PRICE = GasPrice.fromString("0.025uxion");
