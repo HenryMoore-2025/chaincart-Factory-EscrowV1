@@ -1,4 +1,5 @@
 use cosmwasm_std::StdError;
+use cw_utils::ParseReplyError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -6,8 +7,15 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
-    #[error("Unauthorized")]
+    #[error("{0}")]
+    ParseReply(#[from] ParseReplyError),
+
+    #[error("Unauthorized: only the owner can perform this action")]
     Unauthorized {},
-    // Add any other custom errors you like here.
-    // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
+
+    #[error("Transaction ID already exists")]
+    TransactionIdExists {},
+
+    #[error("Unknown reply ID")]
+    UnknownReplyId {},
 }

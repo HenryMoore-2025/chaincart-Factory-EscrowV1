@@ -9,6 +9,8 @@ optimize = "cosmwasm-opt ./target/wasm32-unknown-unknown/release/escrow_contract
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+name = "escrow-contract"
+
 
 Deployed hash: 377BA2EAE01647E9A90DD32FC298BAB6BCFBE58CFE58571EFF45588BDABAFBF3
 TXID = 
